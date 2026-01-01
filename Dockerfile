@@ -10,15 +10,11 @@ RUN \
   curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
   apt-get -y update && \
   ACCEPT_EULA=Y apt-get -y install --no-install-recommends \
-  # NFS dependencies
   nfs-common \
-  # odbc dependencies
   msodbcsql18\
   unixodbc-dev \
   graphviz \
-  # postgres dependencies \
   postgresql-client \
-  # R
   r-base && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
@@ -53,18 +49,6 @@ RUN \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/mage-ai.git@$FEATURE_BRANCH#egg=mage-integrations&subdirectory=mage_integrations"; \
   fi
 
-# Additional Python packages for ETL
-RUN pip3 install --no-cache-dir \
-  'numpy>=1.26.0,<2.0.0' \
-  'scipy<1.15' \
-  firebirdsql \
-  pymysql \
-  sqlalchemy \
-  fdb \
-  sqlalchemy-firebird \
-  pandas \
-  python-dotenv
-
 # Mage
 COPY ./mage_ai/server/constants.py /tmp/constants.py
 RUN if [ -z "$FEATURE_BRANCH" ] || [ "$FEATURE_BRANCH" = "null" ] ; then \
@@ -74,6 +58,19 @@ RUN if [ -z "$FEATURE_BRANCH" ] || [ "$FEATURE_BRANCH" = "null" ] ; then \
   else \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/mage-ai.git@$FEATURE_BRANCH#egg=mage-ai[all]"; \
   fi
+
+# Additional Python packages for ETL (AFTER mage-ai to override versions)
+RUN pip3 install --no-cache-dir \
+  'numpy>=1.26.0,<2.0.0' \
+  'scipy<1.15' \
+  'scikit-learn>=1.3.0,<1.6.0' \
+  firebirdsql \
+  pymysql \
+  sqlalchemy \
+  fdb \
+  sqlalchemy-firebird \
+  pandas \
+  python-dotenv
 
 ## Startup Scripts
 COPY --chmod=0755 ./scripts/install_other_dependencies.py ./scripts/run_app.sh /app/
