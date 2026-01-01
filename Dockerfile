@@ -70,14 +70,8 @@ RUN pip3 install --no-cache-dir \
   fdb \
   sqlalchemy-firebird \
   pandas \
-  python-dotenv
-  firebirdsql \
-  pymysql \
-  sqlalchemy \
-  fdb \
-  sqlalchemy-firebird \
-  pandas \
-  python-dotenv
+  python-dotenv 
+
 
 ## Startup Scripts
 COPY --chmod=0755 ./scripts/install_other_dependencies.py ./scripts/run_app.sh /app/
