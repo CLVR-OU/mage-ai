@@ -61,9 +61,16 @@ RUN if [ -z "$FEATURE_BRANCH" ] || [ "$FEATURE_BRANCH" = "null" ] ; then \
 
 # Additional Python packages for ETL (AFTER mage-ai to override versions)
 RUN pip3 install --no-cache-dir \
-  'numpy>=1.26.0,<2.0.0' \
-  'scipy<1.15' \
-  'scikit-learn>=1.3.0,<1.6.0' \
+  'numpy==1.26.4' \
+  'scipy==1.11.4' \
+  'scikit-learn==1.3.2' \
+  firebirdsql \
+  pymysql \
+  sqlalchemy \
+  fdb \
+  sqlalchemy-firebird \
+  pandas \
+  python-dotenv
   firebirdsql \
   pymysql \
   sqlalchemy \
