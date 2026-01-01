@@ -2,7 +2,6 @@ FROM python:3.10-bookworm
 LABEL description="Deploy Mage on ECS"
 ARG FEATURE_BRANCH
 USER root
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ## System Packages
@@ -24,11 +23,13 @@ RUN \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
+## Install Tailscale
+RUN curl -fsSL https://tailscale.com/install.sh | sh
+
 ## R Packages
 RUN \
   R -e "install.packages('pacman', repos='http://cran.us.r-project.org')" && \
   R -e "install.packages('renv', repos='http://cran.us.r-project.org')"
-
 
 ## Python Packages
 RUN \
@@ -37,6 +38,7 @@ RUN \
   curl https://raw.githubusercontent.com/jupyter-incubator/sparkmagic/master/sparkmagic/example_config.json > ~/.sparkmagic/config.json && \
   sed -i 's/localhost:8998/host.docker.internal:9999/g' ~/.sparkmagic/config.json && \
   jupyter-kernelspec install --user "$(pip3 show sparkmagic | grep Location | cut -d' ' -f2)/sparkmagic/kernels/pysparkkernel"
+
 # Mage integrations and other related packages
 RUN \
   pip3 install --no-cache-dir "git+https://github.com/wbond/oscrypto.git@d5f3437ed24257895ae1edd9e503cfb352e635a8" && \
@@ -44,13 +46,24 @@ RUN \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/singer-python.git#egg=singer-python" && \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/dbt-mysql.git#egg=dbt-mysql" && \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/sqlglot#egg=sqlglot" && \
-  # faster-fifo is not supported on Windows: https://github.com/alex-petrenko/faster-fifo/issues/17
   pip3 install --no-cache-dir faster-fifo && \
   if [ -z "$FEATURE_BRANCH" ] || [ "$FEATURE_BRANCH" = "null" ]; then \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/mage-ai.git#egg=mage-integrations&subdirectory=mage_integrations"; \
   else \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/mage-ai.git@$FEATURE_BRANCH#egg=mage-integrations&subdirectory=mage_integrations"; \
   fi
+
+# Additional Python packages for ETL
+RUN pip3 install --no-cache-dir \
+  'numpy>=1.26.0,<2.0.0' \
+  'scipy<1.15' \
+  firebirdsql \
+  pymysql \
+  sqlalchemy \
+  fdb \
+  sqlalchemy-firebird \
+  pandas \
+  python-dotenv
 
 # Mage
 COPY ./mage_ai/server/constants.py /tmp/constants.py
@@ -62,9 +75,9 @@ RUN if [ -z "$FEATURE_BRANCH" ] || [ "$FEATURE_BRANCH" = "null" ] ; then \
   pip3 install --no-cache-dir "git+https://github.com/mage-ai/mage-ai.git@$FEATURE_BRANCH#egg=mage-ai[all]"; \
   fi
 
-
-## Startup Script
+## Startup Scripts
 COPY --chmod=0755 ./scripts/install_other_dependencies.py ./scripts/run_app.sh /app/
+COPY --chmod=0755 ./scripts/start-with-tailscale.sh /app/
 
 ENV MAGE_DATA_DIR="/home/src/mage_data"
 ENV PYTHONPATH="${PYTHONPATH}:/home/src"
@@ -72,4 +85,4 @@ WORKDIR /home/src
 EXPOSE 6789
 EXPOSE 7789
 
-CMD ["/bin/sh", "-c", "/app/run_app.sh"]
+CMD ["/app/start-with-tailscale.sh"]
