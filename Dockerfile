@@ -19,9 +19,6 @@ RUN \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-## Install Tailscale
-RUN curl -fsSL https://tailscale.com/install.sh | sh
-
 ## R Packages
 RUN \
   R -e "install.packages('pacman', repos='http://cran.us.r-project.org')" && \
@@ -75,7 +72,6 @@ RUN pip3 install --no-cache-dir \
 
 ## Startup Scripts
 COPY --chmod=0755 ./scripts/install_other_dependencies.py ./scripts/run_app.sh /app/
-COPY --chmod=0755 ./scripts/start-with-tailscale.sh /app/
 
 ENV MAGE_DATA_DIR="/home/src/mage_data"
 ENV PYTHONPATH="${PYTHONPATH}:/home/src"
@@ -83,4 +79,4 @@ WORKDIR /home/src
 EXPOSE 6789
 EXPOSE 7789
 
-CMD ["/app/start-with-tailscale.sh"]
+CMD ["/app/run_app.sh"]
